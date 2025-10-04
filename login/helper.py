@@ -3,7 +3,7 @@ import datetime
 from ippanel import Client
 
 from login.models import MyUser
-from rebo.local_settings import API_MAX_SMS
+from asnaf.local_settings import API_MAX_SMS
 from random import randint
 
 
@@ -28,8 +28,8 @@ def send_otp(mobile, otp):
     }
 
     message_id = sms.send_pattern(
-        "o81jbnw2be3lpwl",  # pattern code
-        "+985000125475",  # originator
+        "gsjno16wbfgwsqq",  # pattern code
+        "+983000505",  # originator
         mobile,  # recipient
         pattern_values,  # pattern values
     )

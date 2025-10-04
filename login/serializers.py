@@ -42,9 +42,6 @@ class MyUserSerializer(serializers.ModelSerializer):
     def get_following_count(self, obj):
         return obj.following.count()
 
-    def get_product_count(self, obj):
-        return obj.products.count()
-
     def get_display_name(self, obj):
         # بررسی اینکه first_name و last_name خالی هستند یا نه
         if not obj.first_name and not obj.last_name:
@@ -70,18 +67,16 @@ class MyProfileSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
-    product_count = serializers.SerializerMethodField()
-    bid_count = serializers.SerializerMethodField()
-    products = serializers.SerializerMethodField()
-    bids = serializers.SerializerMethodField()
-    display_name = serializers.SerializerMethodField()  # اضافه کردن فیلد جدید
+    display_name = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()  # اضافه کردن فیلد ادمین
+    is_staff_user = serializers.SerializerMethodField()  # اضافه کردن فیلد staff
 
     class Meta:
         model = MyUser
         fields = (
             'first_name',
             'last_name',
-            'display_name',  # اضافه کردن فیلد جدید به لیست
+            'display_name',
             'status',
             'image',
             'mobile',
@@ -89,10 +84,10 @@ class MyProfileSerializer(serializers.ModelSerializer):
             'id',
             'followers_count',
             'following_count',
-            'product_count',
-            'bid_count',
-            'products',
-            'bids',
+            'is_admin',  # اضافه کردن به فیلدها
+            'is_staff_user',  # اضافه کردن به فیلدها
+            'is_superuser',  # اضافه کردن فیلد اصلی
+            'is_staff',  # اضافه کردن فیلد اصلی
         )
 
     def get_display_name(self, obj):
@@ -114,22 +109,10 @@ class MyProfileSerializer(serializers.ModelSerializer):
     def get_following_count(self, obj):
         return obj.following.count()
 
-    def get_product_count(self, obj):
-        return obj.products.count()
+    def get_is_admin(self, obj):
+        """بررسی اینکه کاربر ادمین کامل است یا نه"""
+        return obj.is_superuser
 
-    def get_bid_count(self, obj):
-        return obj.bids.count()
-
-    def get_products(self, obj):
-        products = obj.products.filter(
-            status=2,
-            is_active=True,
-            expire_time__gte=timezone.now()
-        ).all()
-        from catalogue.serializers import ApiAllProductSerializer
-        return ApiAllProductSerializer(products, many=True).data
-
-    def get_bids(self, obj):
-        bids = obj.bids.all()
-        from bid.serializers import BidSerializer
-        return BidSerializer(bids, many=True).data
+    def get_is_staff_user(self, obj):
+        """بررسی اینکه کاربر دسترسی staff دارد یا نه"""
+        return obj.is_staff

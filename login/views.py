@@ -15,10 +15,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication  # مطمئن شوید که این پکیج را نصب کرده‌اید
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from rest_framework.permissions import AllowAny
-
-from bid.models import Bid
-from catalogue.models import Product, Favorite
 from login import helper
 from login.models import MyUser, Follow, Address
 from login.serializers import MyUserSerializer, AddressSerializer, MyProfileSerializer, EditProfileSerializer
@@ -26,10 +22,11 @@ from login.serializers import MyUserSerializer, AddressSerializer, MyProfileSeri
 
 class SendOtp(APIView):
     def post(self, request, *args, **kwargs):
+        print("1111")
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
         mobile = body['mobile']
-
+        print(mobile)
         message = "کد تایید با موفقیت ارسال شد"
         status = "ok"
         wait_time = 0  # زمان انتظار
@@ -37,6 +34,8 @@ class SendOtp(APIView):
         # دریافت یا ایجاد کاربر
         user, created = MyUser.objects.get_or_create(mobile=mobile)
 
+        print("injam")
+        print(user)
         if not created and helper.check_otp_expiration(user.mobile):
             message = "شما به تازگی پیامکی دریافت نموده‌اید و هنوز کد شما معتبر است!"
             status = "failed"
@@ -54,8 +53,6 @@ class SendOtp(APIView):
             helper.send_otp(mobile, otp)
             # ذخیره OTP و به‌روزرسانی زمان ارسال
             user.otp = otp
-            user.num_bid = 50000
-            user.bider = True
             user.otp_create_time = datetime.now()  # Update OTP creation time
             user.save()
 
@@ -189,29 +186,11 @@ class GetInfo(APIView):
         try:
             user = request.user
             serializer = MyUserSerializer(user)
-            pending_count = Product.objects.filter(user=user, is_active=False, status=Product.PENDING).count()
-            approved_count = Product.objects.filter(user=user, is_active=True,  status=Product.APPROVED, expire_time__gte=timezone.now()).count()
-            rejected_count = Product.objects.filter(user=user, status=Product.REJECTED).count()
-            expired_count = Product.objects.filter(user=user, expire_time__lte=timezone.now()).count()
 
-            total_bids = Bid.objects.filter(user=user).count()
-            total_favorites = Favorite.objects.filter(user=user).count()
 
             return JsonResponse({
                 'status': 'ok',
                 'user': serializer.data,
-                'products': {
-                    'pending': pending_count,
-                    'approved': approved_count,
-                    'rejected': rejected_count,
-                    'expired': expired_count,
-                },
-                'bids': {
-                    'total': total_bids
-                },
-                'favorites': {
-                    'total': total_favorites
-                }
             })
         except AuthenticationFailed as e:
             return JsonResponse({'status': 'failed', 'message': str(e)}, status=401)

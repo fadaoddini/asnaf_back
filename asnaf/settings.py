@@ -9,8 +9,10 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+from datetime import timedelta
+from asnaf.local_settings import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,9 +36,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'login.apps.CustomLoginConfig',
+    'festival.apps.FestivalConfig',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -72,8 +80,12 @@ WSGI_APPLICATION = 'asnaf.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': DB_NAME,
+        'PASSWORD': DB_PASS,
+        'HOST': DB_HOST,
+        'USER': DB_USER,
+        'PORT': DB_PORT,
     }
 }
 
@@ -102,19 +114,87 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tehran'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_L10N = True
+
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000000
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'login.mybackend.MobileBackend'
+]
+AUTH_USER_MODEL = 'login.MyUser'
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
+
+
+if os.getenv('DJANGO_ENV') == 'production':
+    CORS_ALLOW_CREDENTIALS = True  # فعال کردن اجازه برای اعتبارنامه‌ها
+
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://rebo.ir', 'http://rebo.ir']
+
+    ADDRESS_SERVER = 'https://rebo.ir'
+    BACKEND_URL = 'https://app.rebo.ir'
+    CORS_ALLOWED_ORIGINS = [
+        "https://app.rebo.ir",
+        "https://rebo.ir"
+    ]
+    CORS_ALLOW_HEADERS = [
+        'Authorization',
+        'Content-Type',
+        'X-CSRFToken',
+        'x-refresh-token',
+    ]
+else:
+    CORS_ALLOW_CREDENTIALS = True  # فعال کردن اجازه برای اعتبارنامه‌ها
+
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000']
+    CORS_ALLOW_ALL_ORIGINS = True
+    ADDRESS_SERVER = 'http://localhost:3000'
+    BACKEND_URL = 'http://localhost:8000'
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+    ]
+    CORS_ALLOW_HEADERS = [
+        'Authorization',
+        'Content-Type',
+        'X-CSRFToken',
+        'x-refresh-token',
+    ]
