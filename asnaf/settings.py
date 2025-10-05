@@ -164,7 +164,14 @@ if os.getenv('DJANGO_ENV') == 'production':
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://bamkalaa.ir', 'http://bamkalaa.ir']
+    CSRF_TRUSTED_ORIGINS = [
+        'https://admin.bamkalaa.ir',
+        'https://bamkalaa.ir',
+        'http://admin.bamkalaa.ir',
+        'http://bamkalaa.ir',
+        'https://194.5.205.54',
+        'http://194.5.205.54',
+    ]
 
     ADDRESS_SERVER = 'https://bamkalaa.ir'
     BACKEND_URL = 'https://admin.bamkalaa.ir'
@@ -198,3 +205,5 @@ else:
         'X-CSRFToken',
         'x-refresh-token',
     ]
+
+
