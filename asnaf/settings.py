@@ -161,9 +161,9 @@ SIMPLE_JWT = {
 if os.getenv('DJANGO_ENV') == 'production':
     CORS_ALLOW_CREDENTIALS = True  # فعال کردن اجازه برای اعتبارنامه‌ها
 
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
     CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://bamkalaa.ir', 'http://bamkalaa.ir']
 
     ADDRESS_SERVER = 'https://bamkalaa.ir'
