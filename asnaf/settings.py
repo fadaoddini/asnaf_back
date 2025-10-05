@@ -164,13 +164,13 @@ if os.getenv('DJANGO_ENV') == 'production':
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://rebo.ir', 'http://rebo.ir']
+    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://bamkalaa.ir', 'http://bamkalaa.ir']
 
-    ADDRESS_SERVER = 'https://rebo.ir'
-    BACKEND_URL = 'https://app.rebo.ir'
+    ADDRESS_SERVER = 'https://bamkalaa.ir'
+    BACKEND_URL = 'https://admin.bamkalaa.ir'
     CORS_ALLOWED_ORIGINS = [
-        "https://app.rebo.ir",
-        "https://rebo.ir"
+        "https://admin.bamkalaa.ir",
+        "https://bamkalaa.ir"
     ]
     CORS_ALLOW_HEADERS = [
         'Authorization',
@@ -184,12 +184,12 @@ else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000']
+    CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://localhost:3010']
     CORS_ALLOW_ALL_ORIGINS = True
-    ADDRESS_SERVER = 'http://localhost:3000'
+    ADDRESS_SERVER = 'http://localhost:3010'
     BACKEND_URL = 'http://localhost:8000'
     CORS_ALLOWED_ORIGINS = [
-        "http://localhost:3000",
+        "http://localhost:3010",
         "http://localhost:8000",
     ]
     CORS_ALLOW_HEADERS = [
