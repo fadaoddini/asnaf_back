@@ -159,7 +159,7 @@ SIMPLE_JWT = {
 
 
 if os.getenv('DJANGO_ENV') == 'production':
-    CORS_ALLOW_CREDENTIALS = True  # فعال کردن اجازه برای اعتبارنامه‌ها
+    CORS_ALLOW_CREDENTIALS = True
 
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
