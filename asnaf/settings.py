@@ -173,13 +173,13 @@ if os.getenv('DJANGO_ENV') == 'production':
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://meydan168.ir', 'http://meydan168.ir']
+    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://saeedev.com', 'http://saeedev.com']
 
-    ADDRESS_SERVER = 'https://meydan168.ir'
-    BACKEND_URL = 'https://admin.meydan168.ir'
+    ADDRESS_SERVER = 'https://saeedev.com'
+    BACKEND_URL = 'https://admin.saeedev.com'
     CORS_ALLOWED_ORIGINS = [
-        "https://admin.bamkalmeydan168aa.ir",
-        "https://meydan168.ir"
+        "https://admin.saeedev.com",
+        "https://saeedev.com"
     ]
     CORS_ALLOW_HEADERS = [
         'Authorization',
@@ -193,12 +193,12 @@ else:
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://localhost:3010']
+    CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://localhost:3020']
     CORS_ALLOW_ALL_ORIGINS = True
-    ADDRESS_SERVER = 'http://localhost:3010'
+    ADDRESS_SERVER = 'http://localhost:3020'
     BACKEND_URL = 'http://localhost:8000'
     CORS_ALLOWED_ORIGINS = [
-        "http://localhost:3010",
+        "http://localhost:3020",
         "http://localhost:8000",
     ]
     CORS_ALLOW_HEADERS = [
