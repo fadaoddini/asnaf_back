@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'login.apps.CustomLoginConfig',
     'festival.apps.FestivalConfig',
+    'lms.apps.LmsConfig',
+    'tirpark.apps.TirparkConfig',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -123,6 +125,13 @@ USE_L10N = True
 USE_TZ = False
 
 
+CELERY_BEAT_SCHEDULE = {
+    'sync_tirpark_every_hour': {
+        'task': 'tirpark.tasks.sync_parking_queue',
+        'schedule': 3600,  # هر یک ساعت
+    },
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -164,13 +173,13 @@ if os.getenv('DJANGO_ENV') == 'production':
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://bamkalaa.ir', 'http://bamkalaa.ir']
+    CSRF_TRUSTED_ORIGINS = ['http://194.5.205.54', 'https://meydan168.ir', 'http://meydan168.ir']
 
-    ADDRESS_SERVER = 'https://bamkalaa.ir'
-    BACKEND_URL = 'https://admin.bamkalaa.ir'
+    ADDRESS_SERVER = 'https://meydan168.ir'
+    BACKEND_URL = 'https://admin.meydan168.ir'
     CORS_ALLOWED_ORIGINS = [
-        "https://admin.bamkalaa.ir",
-        "https://bamkalaa.ir"
+        "https://admin.bamkalmeydan168aa.ir",
+        "https://meydan168.ir"
     ]
     CORS_ALLOW_HEADERS = [
         'Authorization',

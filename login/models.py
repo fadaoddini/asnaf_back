@@ -31,10 +31,11 @@ class MyUser(AbstractUser):
     )
 
     username = None
-    mobile = models.CharField(max_length=11, unique=True)
+    mobile = models.CharField(max_length=20, unique=True)
     otp = models.PositiveIntegerField(blank=True, null=True)
     otp_create_time = models.DateTimeField(auto_now=True)
     image = models.ImageField(upload_to=user_directory_path, null=True, blank=True)
+    country_code = models.CharField(max_length=5, blank=True, null=True)
     objects = MyUserManager()
     USERNAME_FIELD = 'mobile'
     REQUIRED_FIELDS = []

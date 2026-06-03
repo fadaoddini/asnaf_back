@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from login.views import SendOtp, VerifyCode, VerifyNameApi, \
     SetImageUser, LogoutV1, GetInfo, FollowAPIView, UnFollowAPIView, IsFollowAPIView, \
     UserDetailsFollowingAPIView, AddressListCreateView, AddressDetailView, CheckTokenMobile, ProfileInfoApi, CheckToken, \
-    EditProfileView
+    EditProfileView, CheckOtpStatus
 
 urlpatterns = [
 
@@ -22,6 +22,7 @@ urlpatterns = [
     path('v1/verifyCodeMob', VerifyCode.as_view(), name='verify-mob'),
     path('v1/checkTokenMobile', CheckTokenMobile.as_view(), name='check-token'),
 
+    path('v1/checkOtpStatus', CheckOtpStatus.as_view(), name='check-otp-status'),
 
     path('v1/sendOtp', SendOtp.as_view(), name='send-otp-v1'),
     path('v1/logout', LogoutV1.as_view(), name='logout-v1'),

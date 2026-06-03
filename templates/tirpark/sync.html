@@ -1,0 +1,223 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<style>
+    .sync-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: white;
+    }
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 14px;
+    }
+    .btn-sync {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        font-size: 18px;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .btn-sync:hover {
+        transform: scale(1.05);
+    }
+    .btn-sync:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .progress {
+        height: 30px;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        line-height: 30px;
+        font-size: 14px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .status-success { background: #d4edda; color: #155724; }
+    .status-failed { background: #f8d7da; color: #721c24; }
+    .status-pending { background: #fff3cd; color: #856404; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="sync-card">
+                <h2>
+                    <i class="fas fa-truck"></i>
+                    همگام‌سازی اطلاعات تیرپارک
+                </h2>
+                <hr>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-number">{{ total_records }}</div>
+                        <div class="stat-label">کل رکوردها</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-number">{{ in_queue_count }}</div>
+                        <div class="stat-label">در صف پارکینگ</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-number">
+                            {% if last_sync %}
+                                {{ last_sync.sync_date|date:"H:i:s" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">آخرین همگام‌سازی</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>⚠️ توجه:</strong>
+                    همگام‌سازی ممکن است چند دقیقه طول بکشد. لطفاً در حین اجرا صفحه را نبندید.
+                </div>
+
+                <button id="syncBtn" class="btn-sync" onclick="startSync()">
+                    <i class="fas fa-sync-alt"></i> شروع همگام‌سازی
+                </button>
+
+                <div id="syncProgress" style="display:none; margin-top:30px;">
+                    <div class="progress">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                    <div id="syncStatus" class="mt-3 text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="sync-card">
+                <h3>تاریخچه همگام‌سازی‌ها</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>تاریخ</th>
+                                <th>صفحات</th>
+                                <th>رکوردها</th>
+                                <th>جدید</th>
+                                <th>بروزرسانی</th>
+                                <th>مدت زمان</th>
+                                <th>وضعیت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sync in sync_history %}
+                            <tr>
+                                <td>{{ sync.sync_date|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ sync.pages_fetched }}</td>
+                                <td>{{ sync.records_fetched }}</td>
+                                <td>{{ sync.records_created }}</td>
+                                <td>{{ sync.records_updated }}</td>
+                                <td>{{ sync.get_duration_display }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ sync.status }}">
+                                        {{ sync.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">هیچ همگام‌سازی‌ای انجام نشده است</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startSync() {
+    if (confirm('آیا مطمئن هستید؟ این عملیات تمام داده‌های موجود را با API همگام می‌کند.')) {
+        const btn = document.getElementById('syncBtn');
+        btn.disabled = true;
+        document.getElementById('syncProgress').style.display = 'block';
+
+        let progressValue = 0;
+        const interval = setInterval(() => {
+            if (progressValue < 90) {
+                progressValue += 10;
+                document.getElementById('progressBar').style.width = progressValue + '%';
+                document.getElementById('progressBar').innerHTML = progressValue + '%';
+            }
+        }, 1000);
+
+        fetch('{% url "tirpark:sync_data" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: ''
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(interval);
+            if (data.status === 'success') {
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressBar').innerHTML = '100%';
+                document.getElementById('syncStatus').innerHTML =
+                    '<div class="alert alert-success">' + data.message + '</div>';
+            } else {
+                document.getElementById('syncStatus').innerHTML =
+                    '<div class="alert alert-danger">' + data.message + '</div>';
+            }
+        })
+        .catch(error => {
+            clearInterval(interval);
+            document.getElementById('syncStatus').innerHTML =
+                '<div class="alert alert-danger">خطا: ' + error + '</div>';
+        })
+        .finally(() => {
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

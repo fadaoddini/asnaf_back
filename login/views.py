@@ -1,6 +1,7 @@
+
 import json
+import re
 from datetime import datetime
-from django.utils import timezone
 from django.contrib.auth import logout
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -12,134 +13,235 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication  # مطمئن شوید که این پکیج را نصب کرده‌اید
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from login import helper
 from login.models import MyUser, Follow, Address
 from login.serializers import MyUserSerializer, AddressSerializer, MyProfileSerializer, EditProfileSerializer
 
+# لیست کدهای کشورهای پشتیبانی شده
+SUPPORTED_COUNTRIES = {
+    '98': {'name': 'Iran', 'min_length': 10, 'max_length': 10, 'regex': r'^9\d{9}$'},  # 09123456789 -> 9123456789
+    '1': {'name': 'USA/Canada', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '44': {'name': 'UK', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '49': {'name': 'Germany', 'min_length': 10, 'max_length': 11, 'regex': r'^\d{10,11}$'},
+    '33': {'name': 'France', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '971': {'name': 'UAE', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '966': {'name': 'Saudi Arabia', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '90': {'name': 'Turkey', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '7': {'name': 'Russia/Kazakhstan', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '86': {'name': 'China', 'min_length': 11, 'max_length': 11, 'regex': r'^\d{11}$'},
+    '91': {'name': 'India', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '92': {'name': 'Pakistan', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '93': {'name': 'Afghanistan', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '964': {'name': 'Iraq', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '963': {'name': 'Syria', 'min_length': 8, 'max_length': 9, 'regex': r'^\d{8,9}$'},
+    '20': {'name': 'Egypt', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '61': {'name': 'Australia', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '31': {'name': 'Netherlands', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '46': {'name': 'Sweden', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '47': {'name': 'Norway', 'min_length': 8, 'max_length': 8, 'regex': r'^\d{8}$'},
+    '45': {'name': 'Denmark', 'min_length': 8, 'max_length': 8, 'regex': r'^\d{8}$'},
+    '358': {'name': 'Finland', 'min_length': 9, 'max_length': 10, 'regex': r'^\d{9,10}$'},
+    '39': {'name': 'Italy', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '34': {'name': 'Spain', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '351': {'name': 'Portugal', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '30': {'name': 'Greece', 'min_length': 10, 'max_length': 10, 'regex': r'^\d{10}$'},
+    '48': {'name': 'Poland', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+    '380': {'name': 'Ukraine', 'min_length': 9, 'max_length': 9, 'regex': r'^\d{9}$'},
+}
+
+
+def validate_and_normalize_mobile(mobile):
+    """
+    اعتبارسنجی و نرمالایز کردن شماره موبایل
+    ورودی: +989123456789 یا 09123456789 یا 9123456789
+    خروجی: +989123456789 (فرمت بین‌المللی نرمالایز شده)
+    """
+    if not mobile:
+        return None, "شماره موبایل نمی‌تواند خالی باشد"
+
+    # حذف فضاهای خالی و کاراکترهای اضافی
+    mobile = re.sub(r'[\s\-\(\)]', '', mobile.strip())
+
+    # اگر شماره با 00 شروع شده بود تبدیل به +
+    if mobile.startswith('00'):
+        mobile = '+' + mobile[2:]
+
+    # اگر شماره با صفر شروع شده بود (فرمت داخلی ایران)
+    if mobile.startswith('0') and len(mobile) >= 10:
+        # حذف صفر اول و اضافه کردن کد ایران
+        mobile = '+98' + mobile[1:]
+
+    # اگر شماره با + شروع نشده بود
+    if not mobile.startswith('+'):
+        # اگر شماره فقط عدد است و طول آن مناسب است، احتمالاً شماره داخلی ایران است
+        if mobile.isdigit() and len(mobile) >= 10:
+            if len(mobile) == 10:
+                mobile = '+98' + mobile
+            elif len(mobile) == 11 and mobile.startswith('9'):
+                mobile = '+98' + mobile
+            else:
+                return None, "فرمت شماره موبایل صحیح نیست"
+        else:
+            return None, "فرمت شماره موبایل صحیح نیست"
+
+    # استخراج کد کشور و شماره محلی
+    for country_code, info in SUPPORTED_COUNTRIES.items():
+        if mobile.startswith(f'+{country_code}'):
+            local_number = mobile[len(f'+{country_code}'):]
+
+            # بررسی طول شماره محلی
+            if not (info['min_length'] <= len(local_number) <= info['max_length']):
+                return None, f"شماره {info['name']} باید بین {info['min_length']} تا {info['max_length']} رقم باشد"
+
+            # بررسی regex شماره محلی
+            if not re.match(info['regex'], local_number):
+                return None, f"فرمت شماره {info['name']} صحیح نیست"
+
+            # برگرداندن شماره نرمالایز شده
+            normalized = f"+{country_code}{local_number}"
+            return normalized, None
+
+    # اگر کد کشور پشتیبانی نشد
+    return None, "کد کشور پشتیبانی نمی‌شود"
+
 
 class SendOtp(APIView):
     def post(self, request, *args, **kwargs):
-        print("1111")
+        print("Sending OTP request received")
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
-        mobile = body['mobile']
-        print(mobile)
+        mobile = body.get('mobile', '')
+
+        print(f"Raw mobile: {mobile}")
+
+        # اعتبارسنجی و نرمالایز کردن شماره
+        normalized_mobile, error = validate_and_normalize_mobile(mobile)
+
+        print(f"Normalized mobile: {normalized_mobile}")
+        if error:
+            return Response({
+                'status': 'failed',
+                'message': error,
+                'wait_time': 0
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        print(f"Normalized mobile: {normalized_mobile}")
+
         message = "کد تایید با موفقیت ارسال شد"
-        status = "ok"
-        wait_time = 0  # زمان انتظار
+        status_text = "ok"
+        wait_time = 0
 
         # دریافت یا ایجاد کاربر
-        user, created = MyUser.objects.get_or_create(mobile=mobile)
+        user, created = MyUser.objects.get_or_create(mobile=normalized_mobile)
 
-        print("injam")
-        print(user)
-        if not created and helper.check_otp_expiration(user.mobile):
+        print(f"User: {user}, Created: {created}")
+
+        if not created and helper.check_otp_expiration(normalized_mobile):
             message = "شما به تازگی پیامکی دریافت نموده‌اید و هنوز کد شما معتبر است!"
-            status = "failed"
+            status_text = "failed"
 
             # محاسبه زمان باقی‌مانده
             now = datetime.now()
             otp_time = user.otp_create_time
             diff_time = now - otp_time
-
-            # زمان باقی‌مانده به ثانیه
             wait_time = 120 - diff_time.seconds if diff_time.seconds < 120 else 0
         else:
             # ارسال OTP
             otp = helper.create_random_otp()
-            helper.send_otp(mobile, otp)
-            # ذخیره OTP و به‌روزرسانی زمان ارسال
+            helper.send_otp(normalized_mobile, otp)
             user.otp = otp
-            user.otp_create_time = datetime.now()  # Update OTP creation time
+            user.otp_create_time = datetime.now()
             user.save()
 
         data = {
             'id': user.id,
-            'status': status,
+            'status': status_text,
             'message': message,
-            'mobile': user.mobile,
-            'wait_time': wait_time,  # اضافه کردن زمان انتظار به پاسخ
+            'mobile': normalized_mobile,
+            'wait_time': wait_time,
         }
         return Response(data, content_type='application/json; charset=UTF-8')
-
 
 
 class VerifyCode(APIView):
     def post(self, request, *args, **kwargs):
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
-        mobile = body['mobile']
-        code = body['code']
-        # متغیرهای پیش‌فرض
+        mobile = body.get('mobile', '')
+        code = body.get('code', '')
+
         message = "کد شما صحیح بود"
-        status = "ok"
-        refresh_token1 = "poooooch"
-        access_token1 = "poooooch"
+        status_text = "ok"
 
-        # جستجوی کاربر با موبایل وارد شده
-        user = MyUser.objects.filter(mobile=mobile)
+        # نرمالایز کردن شماره برای جستجو
+        normalized_mobile, error = validate_and_normalize_mobile(mobile)
 
-        if user.exists():
-            user = user.first()
+        if error:
+            return Response({
+                'status': 'failed',
+                'messege': error,
+                'refresh_token': '',
+                'access_token': '',
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-            # چک کردن اعتبار کد OTP
-            if not helper.check_otp_expiration(mobile):
+        # جستجوی کاربر
+        user = MyUser.objects.filter(mobile=normalized_mobile).first()
+
+        if user:
+            # چک کردن اعتبار OTP
+            if not helper.check_otp_expiration(normalized_mobile):
                 message = "کد شما اعتبار زمانی خود را از دست داده است لطفا مجددا سعی نمائید!"
-                status = "failed"
+                status_text = "failed"
                 data = {
-                    'status': status,
+                    'status': status_text,
                     'messege': message,
-                    'refresh_token': refresh_token1,
-                    'access_token': access_token1,
+                    'refresh_token': '',
+                    'access_token': '',
                 }
                 return Response(data, content_type='application/json; charset=UTF-8')
 
-            # چک کردن صحت کد وارد شده
+            # چک کردن صحت کد
             if user.otp != int(code):
                 message = "کد وارد شده صحیح نیست. لطفاً دوباره تلاش کنید."
-                status = "failed"
+                status_text = "failed"
                 data = {
-                    'status': status,
+                    'status': status_text,
                     'messege': message,
-                    'refresh_token': refresh_token1,
-                    'access_token': access_token1,
+                    'refresh_token': '',
+                    'access_token': '',
                 }
                 return Response(data)
 
-            # اگر کد صحیح است، کاربر فعال می‌شود
+            # کد صحیح است
             user.is_active = True
             user.save()
 
-            # ایجاد توکن‌های جدید برای کاربر
+            # ایجاد توکن
             refresh = RefreshToken.for_user(user)
             refresh_token = str(refresh)
             access_token = str(refresh.access_token)
 
-            # ارسال پاسخ با توکن‌ها
             data = {
-                'status': status,
+                'status': status_text,
                 'messege': message,
                 'refresh_token': refresh_token,
                 'access_token': access_token,
                 'user_id': user.pk,
             }
             return Response(data, content_type='application/json; charset=UTF-8')
-
         else:
-            # اگر کاربر پیدا نشد
             message = "کاربری با اطلاعات فوق وجود ندارد!"
-            status = "failed"
+            status_text = "failed"
             data = {
-                'status': status,
+                'status': status_text,
                 'messege': message,
-                'refresh_token': refresh_token1,
-                'access_token': access_token1
+                'refresh_token': '',
+                'access_token': ''
             }
             return Response(data, content_type='application/json; charset=UTF-8')
-
 
 
 class VerifyNameApi(APIView):
@@ -511,3 +613,36 @@ class EditProfileView(APIView):
             serializer.save()
             return Response({"message": "اطلاعات با موفقیت ذخیره شد."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CheckOtpStatus(APIView):
+    def post(self, request):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        mobile = body.get('mobile')
+
+        try:
+            user = MyUser.objects.get(mobile=mobile)
+            now = datetime.now()
+            otp_time = user.otp_create_time
+            diff_time = now - otp_time
+
+            if diff_time.total_seconds() < 120:
+                wait_time = 120 - int(diff_time.total_seconds())
+                return Response({
+                    'status': 'ok',
+                    'wait_time': wait_time,
+                    'message': 'کد هنوز معتبر است'
+                })
+            else:
+                return Response({
+                    'status': 'expired',
+                    'wait_time': 0,
+                    'message': 'زمان کد منقضی شده است'
+                })
+        except MyUser.DoesNotExist:
+            return Response({
+                'status': 'failed',
+                'wait_time': 0,
+                'message': 'کاربر یافت نشد'
+            }, status=404)
