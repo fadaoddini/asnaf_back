@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'login.apps.CustomLoginConfig',
     'festival.apps.FestivalConfig',
     'lms.apps.LmsConfig',
+    'portfolio.apps.PortfolioConfig',
     'tirpark.apps.TirparkConfig',
     'rest_framework',
     'rest_framework_simplejwt',
