@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'festival.apps.FestivalConfig',
     'lms.apps.LmsConfig',
     'portfolio.apps.PortfolioConfig',
+    'insta.apps.InstaConfig',
     'tirpark.apps.TirparkConfig',
     'rest_framework',
     'rest_framework_simplejwt',

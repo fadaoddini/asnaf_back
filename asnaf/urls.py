@@ -11,6 +11,7 @@ urlpatterns = [
     path('tirpark/', include('tirpark.urls')),
     path('lms/', include('lms.urls')),
     path('portfolio/', include('portfolio.urls')),
+    path('insta/', include('insta.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
