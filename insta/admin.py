@@ -46,6 +46,7 @@ class LikeAdmin(admin.ModelAdmin):
     list_display = ['id', 'post', 'user', 'created_at']
 
 
+
 @admin.register(Story)
 class StoryAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'created_at', 'expires_at', 'is_expired']
